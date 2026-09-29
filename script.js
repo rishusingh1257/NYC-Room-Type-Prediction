@@ -15,7 +15,7 @@
 
   /* ---------------- Config ---------------- */
   const CONFIG = {
-    defaultApi: 'http://127.0.0.1:8000',
+    defaultApi: 'https://nyc-room-type-prediction-a3sq.onrender.com',
     predictPath: '/predict',
     healthPath: '/health',
     timeoutMs: 15000,
