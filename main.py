@@ -20,7 +20,7 @@ COLUMNS = ["latitude", "longitude", "price", "minimum_nights",
     "calculated_host_listings_count", "availability_365",
     "neighbourhood_group", "neighbourhood",]
 
-model = joblib.load("Model_Pipeline.pkl")  
+model = joblib.load("Model_PipeLine.pkl")  
 
 class Features(BaseModel):
     latitude: float = Field(..., ge=-90, le=90, description="Latitude coordinate")
