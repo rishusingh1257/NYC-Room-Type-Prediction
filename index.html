@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NYC room type predictor</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- City skyline: windows light up in the predicted class colour -->
+  <svg id="skyline" aria-hidden="true"></svg>
+
+  <div class="page">
+
+    <header class="top">
+      <div class="top-text">
+        <h1>Which kind of listing is this?</h1>
+        <p class="lede">Enter a listing's details and the model will predict whether it's an
+      entire home, a private room, or a shared room — the way the city lights up differently
+      behind each kind of door.</p>
+      </div>
+      <div id="apiStatus" class="status" role="status" data-state="checking">
+        <span class="dot"></span>
+        <span id="apiStatusText">Checking API</span>
+      </div>
+    </header>
+
+    <main class="layout">
+
+      <!-- ============ FORM ============ -->
+      <form id="form" novalidate autocomplete="off">
+
+        <div class="presets" role="group" aria-label="Example listings">
+          <span class="presets-label">Try an example</span>
+          <div id="presetList" class="preset-list"></div>
+        </div>
+
+        <!-- Location -->
+        <section class="group" aria-labelledby="h-location">
+          <h2 id="h-location">Where is it?</h2>
+
+          <div class="control">
+            <span class="label" id="l-borough">Borough</span>
+            <div id="boroughSeg" class="seg" role="radiogroup" aria-labelledby="l-borough"></div>
+          </div>
+
+          <div class="control combo" id="combo">
+            <label class="label" for="hoodInput">Neighbourhood</label>
+            <input id="hoodInput" type="text" role="combobox" aria-expanded="false"
+                   aria-controls="hoodList" aria-autocomplete="list" spellcheck="false">
+            <ul id="hoodList" role="listbox" hidden></ul>
+            <p class="err" data-err="neighbourhood" role="alert"></p>
+          </div>
+
+          <div class="geo">
+            <div class="pad" id="pad" tabindex="0" role="group"
+                 aria-label="Location pad. Drag the pin or use the arrow keys to set latitude and longitude.">
+              <svg id="padSvg" viewBox="0 0 300 300" aria-hidden="true"></svg>
+            </div>
+
+            <div class="geo-fields">
+              <div class="field" data-key="latitude">
+                <label class="label" for="in-latitude">Latitude</label>
+                <input class="num-input" id="in-latitude" type="number" inputmode="decimal" step="0.0001">
+                <p class="err" role="alert"></p>
+              </div>
+              <div class="field" data-key="longitude">
+                <label class="label" for="in-longitude">Longitude</label>
+                <input class="num-input" id="in-longitude" type="number" inputmode="decimal" step="0.0001">
+                <p class="err" role="alert"></p>
+              </div>
+              <p class="hint">Drag the pin on the pad to fine-tune the exact spot.</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- Price & stay -->
+        <section class="group" aria-labelledby="h-stay">
+          <h2 id="h-stay">What does a stay look like?</h2>
+
+          <div class="field slider-field" data-key="price">
+            <div class="field-head">
+              <label class="label" for="in-price">Price per night</label>
+              <div class="num"><span class="unit">$</span><input class="num-input" id="in-price" type="number" inputmode="decimal" min="0" step="1"></div>
+            </div>
+            <input class="slider" type="range" id="sl-price" min="0" max="1000" step="5" aria-label="Price per night slider">
+            <p class="err" role="alert"></p>
+          </div>
+
+          <div class="field slider-field" data-key="minimum_nights">
+            <div class="field-head">
+              <label class="label" for="in-minimum_nights">Minimum nights</label>
+              <div class="num"><input class="num-input" id="in-minimum_nights" type="number" inputmode="numeric" min="1" max="365" step="1"><span class="unit">nights</span></div>
+            </div>
+            <input class="slider" type="range" id="sl-minimum_nights" min="1" max="90" step="1" aria-label="Minimum nights slider">
+            <p class="err" role="alert"></p>
+          </div>
+
+          <div class="field slider-field" data-key="availability_365">
+            <div class="field-head">
+              <label class="label" for="in-availability_365">Availability</label>
+              <div class="num"><input class="num-input" id="in-availability_365" type="number" inputmode="numeric" min="0" max="365" step="1"><span class="unit">of 365 days</span></div>
+            </div>
+            <input class="slider" type="range" id="sl-availability_365" min="0" max="365" step="1" aria-label="Availability slider">
+            <p class="err" role="alert"></p>
+          </div>
+        </section>
+
+        <!-- Reviews & host -->
+        <section class="group" aria-labelledby="h-host">
+          <h2 id="h-host">How active are the host and guests?</h2>
+
+          <div class="field slider-field" data-key="number_of_reviews">
+            <div class="field-head">
+              <label class="label" for="in-number_of_reviews">Total reviews</label>
+              <div class="num"><input class="num-input" id="in-number_of_reviews" type="number" inputmode="numeric" min="0" step="1"></div>
+            </div>
+            <input class="slider" type="range" id="sl-number_of_reviews" min="0" max="500" step="1" aria-label="Total reviews slider">
+            <p class="err" role="alert"></p>
+          </div>
+
+          <div class="field slider-field" data-key="reviews_per_month">
+            <div class="field-head">
+              <label class="label" for="in-reviews_per_month">Reviews per month</label>
+              <div class="num"><input class="num-input" id="in-reviews_per_month" type="number" inputmode="decimal" min="0" step="0.01"></div>
+            </div>
+            <input class="slider" type="range" id="sl-reviews_per_month" min="0" max="10" step="0.05" aria-label="Reviews per month slider">
+            <p class="err" role="alert"></p>
+          </div>
+
+          <div class="field slider-field" data-key="calculated_host_listings_count">
+            <div class="field-head">
+              <label class="label" for="in-calculated_host_listings_count">Listings by this host</label>
+              <div class="num"><input class="num-input" id="in-calculated_host_listings_count" type="number" inputmode="numeric" min="0" step="1"></div>
+            </div>
+            <input class="slider" type="range" id="sl-calculated_host_listings_count" min="0" max="50" step="1" aria-label="Listings by this host slider">
+            <p class="err" role="alert"></p>
+          </div>
+        </section>
+      </form>
+
+      <!-- ============ RESULT ============ -->
+      <aside class="result" id="result" data-state="idle" aria-live="polite">
+
+        <div class="ring-wrap">
+          <svg class="ring" viewBox="0 0 240 240" aria-hidden="true">
+            <circle class="ring-track" cx="120" cy="120" r="96"></circle>
+            <g class="ring-arcs" transform="rotate(-90 120 120)">
+              <circle class="arc" data-arc="0" cx="120" cy="120" r="96"></circle>
+              <circle class="arc" data-arc="1" cx="120" cy="120" r="96"></circle>
+              <circle class="arc" data-arc="2" cx="120" cy="120" r="96"></circle>
+              <circle class="sweep" cx="120" cy="120" r="96"></circle>
+            </g>
+          </svg>
+          <div class="ring-center">
+            <span id="ringSub" class="ring-sub">Ready</span>
+            <strong id="ringLabel" class="ring-label">No prediction yet</strong>
+            <span id="ringPct" class="ring-pct"></span>
+          </div>
+        </div>
+
+        <p id="verdict" class="verdict">Fill in the listing details, then predict.</p>
+
+        <ul class="bars" id="bars"></ul>
+
+        <div class="actions">
+          <button id="predictBtn" class="btn primary" type="submit" form="form">
+            <span class="btn-spin" aria-hidden="true"></span>
+            <span id="predictBtnText">Predict room type</span>
+          </button>
+          <button id="resetBtn" class="btn ghost" type="button">Reset</button>
+        </div>
+
+        <p id="apiError" class="api-error" role="alert" hidden></p>
+
+        <section class="history" id="historyWrap" hidden>
+          <h2>Recent predictions</h2>
+          <ol id="history"></ol>
+        </section>
+      </aside>
+
+    </main>
+
+    <footer class="foot">
+      <label for="apiUrl">API address</label>
+      <input id="apiUrl" type="url" spellcheck="false" placeholder="http://127.0.0.1:8000">
+    </footer>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
